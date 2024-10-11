@@ -12,10 +12,11 @@ permissions:
 
 env:
   BACKEND_WEBAPP_DEV: kmouchantaf-be-dev
+  BACKEND_WEBAPP_UAT: kmouchantaf-be-uat
 
 jobs:
   build:
-    
+
     runs-on: ubuntu-latest
     env:
       ENV: ghci
@@ -47,9 +48,10 @@ jobs:
       with:
         name: python-app
         path: |
-          . 
+          .
 
-  deploy:
+  deploy-dev:
+    if: github.ref != 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     needs: build
     environment:
@@ -62,15 +64,40 @@ jobs:
       with:
         name: python-app
         path: .
-    
+
     - uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: 'Deploy to Azure Web App'
+    - name: 'Deploy to Azure Web App Development'
       uses: azure/webapps-deploy@v3
       id: deploy-to-webapp
       with:
         app-name: ${{ env.BACKEND_WEBAPP_DEV }}
         package: .
-    
+
+  deploy-uat:
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'UAT'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    steps:
+    - name: Download artifact from build job
+      uses: actions/download-artifact@v4
+      with:
+        name: python-app
+        path: .
+
+    - uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: 'Deploy to Azure Web App UAT'
+      uses: azure/webapps-deploy@v3
+      id: deploy-to-webapp
+      with:
+        app-name: ${{ env.BACKEND_WEBAPP_UAT }}
+        package: .
