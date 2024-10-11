@@ -9,7 +9,7 @@ dotenv.load_dotenv()
 
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///local.db'
 
 # Select environment based on the ENV environment variable
 if os.getenv('ENV') == 'local':
